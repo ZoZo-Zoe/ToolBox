@@ -21,6 +21,18 @@ from bpy.types import (
 from bpy.props import(StringProperty)
 
 #----------------------------------------------
+#               ToolBox Properties
+#----------------------------------------------
+
+class ToolBoxPropertyGroup(bpy.types.PropertyGroup):
+    Armature: bpy.props.PointerProperty(type=bpy.types.Object)
+    Mesh: bpy.props.PointerProperty(type=bpy.types.Object)
+
+
+
+
+
+#----------------------------------------------
 #               Main Panel
 #----------------------------------------------
 
@@ -301,7 +313,7 @@ class OBJECT_OT_SelectArmatureOp(Operator):
     def execute(self, context):
         
         ob = bpy.context.object
-        bpy.context.scene["TBArmature"] = ob
+        bpy.context.scene.ToolBox.Armature = ob
         return {"FINISHED"}
 
 #----------------------------------------------
@@ -323,7 +335,7 @@ class OBJECT_OT_SelectMeshOp(Operator):
     def execute(self, context):
         
         ob = bpy.context.object
-        bpy.context.scene["TBMesh"] = ob
+        bpy.context.scene.ToolBox.Mesh = ob
         return {"FINISHED"}
     
     
@@ -341,11 +353,11 @@ class OBJECT_OT_RemoveVertexGroupsOp(Operator):
 
     @classmethod
     def poll(cls, context):
-        return bpy.context.scene["TBArmature"] and bpy.context.scene["TBMesh"]
+        return bpy.context.scene.ToolBox.Armature and bpy.context.scene.ToolBox.Mesh
     
     def execute(self, context):
-        Arma = bpy.context.scene['TBArmature']
-        Mesh = bpy.context.scene['TBMesh']
+        Arma = bpy.context.scene.ToolBox.Armature
+        Mesh = bpy.context.scene.ToolBox.Mesh
         VertexKeys = Mesh.vertex_groups.keys()
         BoneKeys = Arma.data.bones.keys()
         
@@ -359,8 +371,8 @@ class OBJECT_OT_RemoveVertexGroupsOp(Operator):
                 print("removed " + key)
                 
 
-        bpy.context.scene['TBArmature'] = ""
-        bpy.context.scene['TBMesh'] = ""
+        bpy.context.scene.ToolBox.property_unset('Armature')
+        bpy.context.scene.ToolBox.property_unset('Mesh')
         
         return {"FINISHED"}
 
@@ -369,6 +381,7 @@ class OBJECT_OT_RemoveVertexGroupsOp(Operator):
 #----------------------------------------------
 
 classes = (
+    ToolBoxPropertyGroup,
     ToolboxMainMenu,
     MeshMenu,
     ShapekeyTools,
@@ -387,6 +400,8 @@ classes = (
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+        
+    bpy.types.Scene.ToolBox = bpy.props.PointerProperty(type=ToolBoxPropertyGroup)
         
 def unregister():
     for cls in classes:
