@@ -79,13 +79,15 @@ class ShapekeyTools(bpy.types.Panel):
         split = col.row(align=True)
         row = split.row(align=True)
         row.scale_y = 1.5
-        row.label(text="Select verts in shapekey")
         row.operator("object.shapekeyop", icon='VERTEXSEL')
         split = col.row(align=True)
         row = split.row(align=True)
         row.scale_y = 1.5
-        row.label(text="Remove verts from all shapekeys")
         row.operator("object.returnshapeop", icon='SHAPEKEY_DATA')
+        split = col.row(align=True)
+        row = split.row(align=True)
+        row.scale_y = 1.5
+        row.operator("object.removeshapekeyop", icon='SHAPEKEY_DATA')
 
 #----------------------------------------------
 #               Select shapekey
@@ -128,7 +130,7 @@ class OBJECT_OT_shapekeyOp(Operator):
 #----------------------------------------------       
 
 class OBJECT_OT_returnshapeOp(Operator):
-    bl_label = "Return verts to shapekey"
+    bl_label = "Return selection to Basis"
     bl_idname = "object.returnshapeop"
     bl_option = {'REGISTER', 'UNDO'}
     
@@ -160,6 +162,58 @@ class OBJECT_OT_returnshapeOp(Operator):
     
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)
+
+#----------------------------------------------
+#               Remove Empty Shapekeys
+#----------------------------------------------         
+    
+class OBJECT_OT_removeshapeOp(Operator):
+    bl_label = "Remove empty shapekeys"
+    bl_idname = "object.removeshapekeyop"
+    bl_option = {'REGISTER', 'UNDO'}
+    
+    @classmethod
+    def poll(cls, context):
+        return context.object.select_get() and context.object.type == 'MESH'
+        
+    def execute(self, context):
+        
+        tolerance = 1e-5
+        obj = bpy.context.object
+        shape_keys = obj.data.shape_keys.key_blocks
+        skb_data = shape_keys['Basis'].data
+        removelist = []
+
+        shapelist = shape_keys.keys()
+
+        if "Basis" in shapelist:
+            shapelist.remove('Basis')
+
+        for shape in shapelist:
+    
+            sk1_data = shape_keys[obj.data.shape_keys.key_blocks.find(shape)].data
+            bpy.ops.object.mode_set(mode="EDIT")
+            bpy.ops.mesh.select_all(action="DESELECT")
+            bpy.ops.object.mode_set(mode="OBJECT")
+    
+            for i, (x, y) in enumerate(zip(sk1_data, skb_data)):
+                if (x.co - y.co).length > tolerance:
+                    obj.data.vertices[i].select = True
+    
+            vertcount = len([v for v in bpy.context.active_object.data.vertices if v.select])
+            print(shape)
+            print(vertcount)
+    
+            if vertcount == 0:
+                removelist.append(shape)
+    
+        print(removelist)
+
+        for shape in removelist:
+            bpy.context.object.active_shape_key_index = obj.data.shape_keys.key_blocks.find(shape)
+            bpy.ops.object.shape_key_remove()
+            
+        return {"FINISHED"}
 
 
 #---------------------------------------------- Weightpaint Tools ----------------------------------------------
@@ -353,8 +407,8 @@ class OBJECT_OT_RemoveVertexGroupsOp(Operator):
         return bpy.context.scene.ToolBoxMesh.Armature and bpy.context.scene.ToolBoxMesh.Mesh
     
     def execute(self, context):
-        Arma = bpy.context.scene.ToolBox.Armature
-        Mesh = bpy.context.scene.ToolBoxMesh
+        Arma = bpy.context.scene.ToolBoxMesh.Armature
+        Mesh = bpy.context.scene.ToolBoxMesh.Mesh
         VertexKeys = Mesh.vertex_groups.keys()
         BoneKeys = Arma.data.bones.keys()
         
@@ -608,6 +662,7 @@ classes = (
     OBJECT_OT_transweights,
     OBJECT_OT_transweightsSingle,
     OBJECT_OT_RemoveVertexGroupsOp,
+    OBJECT_OT_removeshapeOp,
     OBJECT_OT_SelectMeshOp,
     OBJECT_OT_ISSelectMeshOp,
     OBJECT_OT_SelectMeshArmatureOp,
