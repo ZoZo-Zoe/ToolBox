@@ -284,6 +284,7 @@ class OBJECT_OT_transweights(Operator):
         bpy.ops.object.select_all(action='DESELECT')
         bpy.context.scene.ToolBoxWeight.Mesh.select_set(True)
         bpy.context.scene.ToolBoxWeight.SecondMesh.select = True
+        bpy.context.view_layer.objects.active = bpy.context.scene.ToolBoxWeight.SecondMesh
         
         bpy.ops.object.mode_set(mode='WEIGHT_PAINT', toggle=False)
         bpy.ops.object.data_transfer(use_reverse_transfer=True, data_type='VGROUP_WEIGHTS', layers_select_src='NAME', layers_select_dst='ALL')
